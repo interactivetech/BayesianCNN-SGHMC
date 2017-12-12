@@ -1,0 +1,361 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# LeNet Dropout Normal"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "import numpy as np\n",
+    "import seaborn as sns\n",
+    "import tensorflow as tf\n",
+    "from tensorflow.examples.tutorials.mnist import input_data\n",
+    "from edward.models import Categorical, Normal, Empirical\n",
+    "from tensorflow.python.ops import gen_state_ops\n",
+    "from tensorflow.python.ops import state_ops\n",
+    "from tensorflow.python.framework import dtypes\n",
+    "import edward as ed\n",
+    "import pandas as pd\n",
+    "%matplotlib inline"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Extracting MNIST_3_data/train-images-idx3-ubyte.gz\n",
+      "Extracting MNIST_3_data/train-labels-idx1-ubyte.gz\n",
+      "Extracting MNIST_3_data/t10k-images-idx3-ubyte.gz\n",
+      "Extracting MNIST_3_data/t10k-labels-idx1-ubyte.gz\n"
+     ]
+    }
+   ],
+   "source": [
+    "mnist = input_data.read_data_sets(\"MNIST_3_data/\",reshape=False, one_hot=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# mnist.train.next_batch(100)[0].shape\n",
+    "\n",
+    "# c1 = tf.layers.conv2d(x,6,5,activation=tf.nn.relu,name=\"c1\")\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "\"\\nwith tf.variable_scope('c1', reuse=True):\\n    w = tf.get_variable('kernel')\\n    print w\\n\""
+      ]
+     },
+     "execution_count": 4,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#get weights\n",
+    "# source: https://stackoverflow.com/questions/45372291/how-to-get-weights-in-tf-layers-dense\n",
+    "'''\n",
+    "with tf.variable_scope('c1', reuse=True):\n",
+    "    w = tf.get_variable('kernel')\n",
+    "    print w\n",
+    "'''\n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Trainable Parameters\n",
+    "# learning_rate = 0.001\n",
+    "# num_steps = 2000\n",
+    "batch_size= 64\n",
+    "\n",
+    "# Network Parameters\n",
+    "num_classes = 10# MNIST total classes (0-9 digits)\n",
+    "dropout = 0.5 # Dropout, probability to keep units\n",
+    "\n",
+    "def lenet(x,n_classes, dropout, reuse, is_training):\n",
+    "    '''\n",
+    "    According to Gal's paper: BAYESIAN CONVOLUTIONAL NEURAL NETWORKS WITH BERNOULLI APPROXIMATE VARIATIONAL INFERENCE\n",
+    "    Author designed bayesian cnn to have dropout after all parameter layers. \n",
+    "    \n",
+    "    Also, author implemented all all dropout layers have dropout probability of 0.5 \n",
+    "    '''\n",
+    "    # Define a scope for reusing the variables\n",
+    "    with tf.variable_scope('LeNet', reuse=reuse):\n",
+    "        # Convolution layer with 6 filters and a kernel size of 5\n",
+    "        conv1 = tf.layers.conv2d(x,6,5,activation=tf.nn.relu)\n",
+    "#         conv1 = tf.layers.dropout(conv1,rate = dropout,training=is_training)\n",
+    "\n",
+    "        # max pooling (down-sampling) with strides of 1 and kernel size of 2\n",
+    "        conv1 = tf.layers.max_pooling2d(conv1,1,2)\n",
+    "        \n",
+    "        # Convolution layer with 64 filters and a kernel size of 3\n",
+    "        conv2 = tf.layers.conv2d(conv1,16,5,activation=tf.nn.relu)\n",
+    "#         conv2 = tf.layers.dropout(conv2,rate = dropout,training=is_training)\n",
+    "\n",
+    "        # Max Pooling (down-sample) with strides of 1 and kernel-size of 2\n",
+    "        conv2 = tf.layers.max_pooling2d(conv2,1,2)\n",
+    "        \n",
+    "        # Flatten the data to a 1-D vector for the fully connected layer\n",
+    "        fc1 = tf.contrib.layers.flatten(conv2)\n",
+    "        \n",
+    "        # Fully connected layer\n",
+    "        fc1 = tf.layers.dense(fc1, 120,activation=tf.nn.relu)\n",
+    "#         fc1 = tf.layers.dropout(fc1,rate = dropout,training=is_training)\n",
+    "\n",
+    "        # Apply Dropout (if is_training is False, dropout is not applied)\n",
+    "        fc2 = tf.layers.dense(fc1,84,activation=tf.nn.relu)\n",
+    "        fc3 = tf.layers.dropout(fc2,rate = dropout,training=is_training)\n",
+    "        logits = tf.layers.dense(fc2,n_classes)\n",
+    "        \n",
+    "        return logits\n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "x = tf.placeholder(tf.float32,[None,32,32,1])\n",
+    "y_ph = tf.placeholder(tf.int32,[None,10])\n",
+    "\n",
+    "logits_train = lenet(x,num_classes,dropout,reuse=False,is_training=True)\n",
+    "logits_test = lenet(x,num_classes,dropout,reuse=True,is_training=False)\n",
+    "\n",
+    "# # Predictions\n",
+    "pred_classes = tf.argmax(logits_test,axis=1)\n",
+    "pred_classes = tf.nn.softmax(logits_test)\n",
+    "\n",
+    "cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits_train, \n",
+    "                                                                        labels=y_ph)\n",
+    "loss_op = tf.reduce_mean(cross_entropy)\n",
+    "\n",
+    " # Optimizer: set up a variable that's incremented once per batch and\n",
+    "  # controls the learning rate decay.\n",
+    "# batch = tf.Variable(0, dtype=data_type())\n",
+    " # Decay once per epoch, using an exponential schedule starting at 0.01.\n",
+    "# global_step = tf.Variable(0, trainable=False)\n",
+    "initial_lr = 0.01\n",
+    "k = 0.75\n",
+    "decay_rate = 0.0005\n",
+    "step = tf.Variable(0, trainable=False)\n",
+    "assign_step = state_ops.assign(step, 0)\n",
+    "increment_step = state_ops.assign_add(step, 1)\n",
+    "learning_rate = tf.train.inverse_time_decay(initial_lr,\n",
+    "                                            step,\n",
+    "                                           k,\n",
+    "                                           decay_rate)\n",
+    "\n",
+    "\n",
+    "optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate,momentum=0.9)\n",
+    "train_op = optimizer.minimize(loss_op,\n",
+    "                             global_step=step)\n",
+    "# eval accuracy of model\n",
+    "correct_prediction = tf.equal(tf.argmax(logits_test, 1), tf.argmax(y_ph, 1))\n",
+    "accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "sess = tf.InteractiveSession()\n",
+    "tf.global_variables_initializer().run()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Image Shape: (28, 28, 1)\n",
+      "()\n",
+      "Training Set:   55000 samples\n",
+      "Validation Set: 5000 samples\n",
+      "Test Set:       10000 samples\n",
+      "Updated Image Shape: (32, 32, 1)\n"
+     ]
+    }
+   ],
+   "source": [
+    "X_train, y_train           = mnist.train.images, mnist.train.labels\n",
+    "X_validation, y_validation = mnist.validation.images, mnist.validation.labels\n",
+    "X_test, y_test             = mnist.test.images, mnist.test.labels\n",
+    "\n",
+    "print(\"Image Shape: {}\".format(X_train[0].shape))\n",
+    "print()\n",
+    "print(\"Training Set:   {} samples\".format(len(X_train)))\n",
+    "print(\"Validation Set: {} samples\".format(len(X_validation)))\n",
+    "print(\"Test Set:       {} samples\".format(len(X_test)))\n",
+    "\n",
+    "# Pad images with 0s\n",
+    "X_train      = np.pad(X_train, ((0,0),(2,2),(2,2),(0,0)), 'constant')\n",
+    "X_validation = np.pad(X_validation, ((0,0),(2,2),(2,2),(0,0)), 'constant')\n",
+    "X_test       = np.pad(X_test, ((0,0),(2,2),(2,2),(0,0)), 'constant')\n",
+    "    \n",
+    "print(\"Updated Image Shape: {}\".format(X_train[0].shape))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def next_batch(num, data, labels):\n",
+    "    '''\n",
+    "    Return a total of `num` random samples and labels. \n",
+    "    '''\n",
+    "    idx = np.arange(0 , len(data))\n",
+    "    np.random.shuffle(idx)\n",
+    "    idx = idx[:num]\n",
+    "    data_shuffle = [data[ i] for i in idx]\n",
+    "    labels_shuffle = [labels[ i] for i in idx]\n",
+    "\n",
+    "    return np.asarray(data_shuffle), np.asarray(labels_shuffle)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Parameters Set according to paper\n",
+    "batch_size: 64, source: https://github.com/yaringal/DropoutUncertaintyCaffeModels/blob/master/mnist_uncertainty/lenet_2_dropout_train_test.prototxt\n",
+    "\n",
+    "### The base learning rate, momentum and the weight decay of the network.\n",
+    "base_lr: 0.01\n",
+    "momentum: 0.9\n",
+    "weight_decay: 0.0005\n",
+    "### The learning rate policy\n",
+    "lr_policy: \"inv\"\n",
+    "gamma: 0.0001\n",
+    "power: 0.75\n",
+    "### Display every 100 iterations\n",
+    "display: 1000\n",
+    "### The maximum number of iterations\n",
+    "max_iter: 1000000\n",
+    "\n",
+    "source: https://github.com/yaringal/DropoutUncertaintyCaffeModels/blob/master/mnist_uncertainty/lenet_32_dropout_solver.prototxt"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "train_operation = optimizer.minimize(loss_op)\n",
+    "error = []\n",
+    "#1e7: from paper\n",
+    "for i in range(1000000):\n",
+    "    # batch size is 64\n",
+    "    x_batch, y_batch = next_batch(batch_size,X_train,y_train)\n",
+    "    X_valid, y_valid = next_batch(batch_size,X_validation,y_validation)\n",
+    "#     x_batch_test, y_batch_test = mnist.train.next_batch(100)\n",
+    "    \n",
+    "    sess.run(train_operation,feed_dict={x:x_batch,y_ph:y_batch})\n",
+    "    if i%1000000==0:\n",
+    "        acc = accuracy_operation.eval(feed_dict={x:X_valid,y_ph:y_valid})\n",
+    "        print i\n",
+    "        print \"Classification Error:\",1-acc\n",
+    "        print \"Accruacy:\",acc\n",
+    "    if i%100==0:\n",
+    "        error.append(1-acc)\n",
+    "    \n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# x_test_3 = mnist.test.images\n",
+    "# y_test_3 = mnist.test.labels\n",
+    "# print y_test_2.shape\n",
+    "print 1-accuracy_operation.eval(feed_dict={x:X_validation,y_ph:y_validation})"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.plot(range(len(error[10:])),error[10:])\n",
+    "plt.title(\"Training Classification Error \")\n",
+    "plt.xlabel(\"Every 100 iterations\")\n",
+    "plt.ylabel(\"Classification error\")"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 2",
+   "language": "python",
+   "name": "python2"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 2
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython2",
+   "version": "2.7.10"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
