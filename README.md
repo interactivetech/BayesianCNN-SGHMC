@@ -4,7 +4,7 @@ This project we formulate a Bayesian framework for Convolutional Neural Networks
 
 
 
-Link to report here: [link](https://github.com/interactivetech/BayesianCNN-SGHMC.git)
+Link to report here: [link](https://s3.amazonaws.com/andrewmendez.me/files/+Bayesian+Convolutional+Neural+Networks+using+Stochastic+Gradient+Hamiltonian+Monte+Carlo.pdf)
 
 This repository implements a Bayesian CNN framework using SGHMC. We compare our method to MC-Dropout. Experiments and models were developed using Tensorflow and Edward. 
 
